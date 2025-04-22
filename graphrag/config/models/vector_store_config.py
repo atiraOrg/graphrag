@@ -35,6 +35,17 @@ class VectorStoreConfig(BaseModel):
             msg = "vector_store.db_uri is only used when vector_store.type == lancedb. Please rerun `graphrag init` and select the correct vector store type."
             raise ValueError(msg)
 
+    storage_options: dict | None = Field(
+        description="Storage options for LanceDB when connecting to cloud storage.",
+        default=vector_store_defaults.storage_options,
+    )
+
+    def _validate_storage_options(self) -> None:
+        """Validate the storage options."""
+        if self.type != VectorStoreType.LanceDB.value and self.storage_options is not None:
+            msg = "vector_store.storage_options is only used when vector_store.type == lancedb. Please rerun `graphrag init` and select the correct vector store type."
+            raise ValueError(msg)
+
     url: str | None = Field(
         description="The database URL when type == azure_ai_search.",
         default=vector_store_defaults.url,
@@ -90,4 +101,5 @@ class VectorStoreConfig(BaseModel):
         """Validate the model."""
         self._validate_db_uri()
         self._validate_url()
+        self._validate_storage_options()
         return self

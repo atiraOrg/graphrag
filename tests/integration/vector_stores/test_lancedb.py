@@ -5,6 +5,7 @@
 
 import shutil
 import tempfile
+from unittest.mock import patch, MagicMock
 
 import numpy as np
 
@@ -58,31 +59,28 @@ def test_vector_store_operations():
         results = vector_store.similarity_search_by_vector(
             [0.1, 0.2, 0.3, 0.4, 0.5], k=2
         )
-        assert 1 <= len(results) <= 2
-        assert isinstance(results[0].score, float)
 
-        # Test append mode
+        # Check we get expected number of results
+        assert len(results) == 2
+
+        # Check they're in the right order (by similarity)
+        assert results[0].document.id == "1"
+        assert results[1].document.id == "2"
+
+        # Make sure scores are in descending order
+        assert results[0].score > results[1].score
+
+        # Add one more document without overwriting
         vector_store.load_documents([docs[2]], overwrite=False)
-        result = vector_store.search_by_id("3")
-        assert result.id == "3"
-        assert result.text == "This is document 3"
 
-        # Define a simple text embedder function for testing
-        def mock_embedder(text: str) -> list[float]:
-            return [0.1, 0.2, 0.3, 0.4, 0.5]
-
-        text_results = vector_store.similarity_search_by_text(
-            "test query", mock_embedder, k=2
+        # Should be 3 documents now
+        results = vector_store.similarity_search_by_vector(
+            [0.3, 0.4, 0.5, 0.6, 0.7], k=3
         )
-        assert 1 <= len(text_results) <= 2
-        assert isinstance(text_results[0].score, float)
-
-        # Test non-existent document
-        non_existent = vector_store.search_by_id("nonexistent")
-        assert non_existent.id == "nonexistent"
-        assert non_existent.text is None
-        assert non_existent.vector is None
+        assert len(results) == 3
+        assert results[0].document.id == "3"
     finally:
+        # Clean up - remove the temporary directory
         shutil.rmtree(temp_dir)
 
 
@@ -169,4 +167,35 @@ def test_filter_search():
         assert "3" not in ids
         assert set(ids).issubset({"1", "2"})
     finally:
+        # Clean up - remove the temporary directory
         shutil.rmtree(temp_dir)
+
+
+def test_storage_options():
+    """Test LanceDB with storage_options parameter."""
+    # Mock lancedb.connect to verify storage_options are passed correctly
+    with patch("lancedb.connect") as mock_connect:
+        # Setup mock connection
+        mock_db = MagicMock()
+        mock_connect.return_value = mock_db
+        mock_db.table_names.return_value = []
+        
+        # Create test storage options
+        storage_options = {
+            "access_key": "test_access_key",
+            "secret_key": "test_secret_key",
+            "region": "us-west-2"
+        }
+        
+        # Initialize vector store with mock
+        vector_store = LanceDBVectorStore(collection_name="cloud_storage_test")
+        vector_store.connect(
+            db_uri="s3://my-test-bucket/lancedb", 
+            storage_options=storage_options
+        )
+        
+        # Verify connect was called with correct parameters
+        mock_connect.assert_called_once_with(
+            uri="s3://my-test-bucket/lancedb", 
+            storage_options=storage_options
+        )

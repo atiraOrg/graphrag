@@ -107,7 +107,10 @@ class LanguageModelConfig(BaseModel):
             If the model name is not recognized.
         """
         if self.encoding_model.strip() == "":
-            self.encoding_model = tiktoken.encoding_name_for_model(self.model)
+            if self.model == "gpt-4.1-mini":
+                self.encoding_model = "o200k_base"
+            else:
+                self.encoding_model = tiktoken.encoding_name_for_model(self.model)
 
     api_base: str | None = Field(
         description="The base URL for the LLM API.",

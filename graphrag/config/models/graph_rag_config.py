@@ -289,7 +289,15 @@ class GraphRagConfig(BaseModel):
                 if not store.db_uri or store.db_uri.strip == "":
                     msg = "Vector store URI is required for LanceDB. Please rerun `graphrag init` and set the vector store configuration."
                     raise ValueError(msg)
-                store.db_uri = str((Path(self.root_dir) / store.db_uri).resolve())
+                
+                # Check if the URI is a cloud storage URI (starts with protocol://)
+                # Common cloud storage protocols: az://, s3://, gs://
+                if not (store.db_uri.startswith("az://") or 
+                        store.db_uri.startswith("s3://") or 
+                        store.db_uri.startswith("gs://") or
+                        store.db_uri.startswith("file://")):
+                    # Only prepend root_dir for local paths, not for cloud storage URIs
+                    store.db_uri = str((Path(self.root_dir) / store.db_uri).resolve())
 
     def get_language_model_config(self, model_id: str) -> LanguageModelConfig:
         """Get a model configuration by ID.

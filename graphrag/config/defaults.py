@@ -392,6 +392,7 @@ class VectorStoreDefaults:
 
     type = VectorStoreType.LanceDB.value
     db_uri: str = str(Path(DEFAULT_OUTPUT_BASE_DIR) / "lancedb")
+    storage_options: dict = None
     container_name: str = "default"
     overwrite: bool = True
     url: None = None
