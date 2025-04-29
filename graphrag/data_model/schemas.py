@@ -64,6 +64,7 @@ ENTITY_DEGREE = "entity_degree"
 ALL_DETAILS = "all_details"
 TEXT = "text"
 N_TOKENS = "n_tokens"
+ATTRIBUTES = "attributes"
 
 CREATION_DATE = "creation_date"
 METADATA = "metadata"
@@ -150,6 +151,7 @@ TEXT_UNITS_FINAL_COLUMNS = [
     ENTITY_IDS,
     RELATIONSHIP_IDS,
     COVARIATE_IDS,
+    ATTRIBUTES,
 ]
 
 DOCUMENTS_FINAL_COLUMNS = [
