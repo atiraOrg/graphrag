@@ -152,13 +152,30 @@ async def _run_and_snapshot_embeddings(
     text_embed_config: dict,
 ) -> pd.DataFrame:
     """All the steps to generate single embedding."""
-    data["embedding"] = await embed_text(
-        input=data,
+    # Store original data
+    df = data.copy()
+    
+    # Get embeddings
+    embeddings = await embed_text(
+        input=df,
         callbacks=callbacks,
         cache=cache,
         embed_column=embed_column,
         embedding_name=name,
         strategy=text_embed_config["strategy"],
     )
-
-    return data.loc[:, ["id", "embedding"]]
+    
+    # If lengths don't match, some embeddings failed
+    if len(embeddings) != len(df):
+        log.warning(f"Embedding length mismatch for {name}: got {len(embeddings)} embeddings for {len(df)} rows")
+        
+        # Option 1: Filter down the dataframe to only include rows with successful embeddings
+        successful_indices = []
+        for i, text in enumerate(df[embed_column]):
+            if i < len(embeddings) and embeddings[i] is not None:
+                successful_indices.append(i)
+                
+        df = df.iloc[successful_indices].reset_index(drop=True)
+    
+    df["embedding"] = embeddings
+    return df.loc[:, ["id", "embedding"]]
