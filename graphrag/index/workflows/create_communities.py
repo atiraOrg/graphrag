@@ -24,8 +24,10 @@ async def run_workflow(
     context: PipelineRunContext,
 ) -> WorkflowFunctionOutput:
     """All the steps to transform final communities."""
-    entities = await load_table_from_storage("entities", context.storage)
-    relationships = await load_table_from_storage("relationships", context.storage)
+    entities = await load_table_from_storage("entities", context.output_storage)
+    relationships = await load_table_from_storage(
+        "relationships", context.output_storage
+    )
 
     max_cluster_size = config.cluster_graph.max_cluster_size
     use_lcc = config.cluster_graph.use_lcc
@@ -39,7 +41,7 @@ async def run_workflow(
         seed=seed,
     )
 
-    await write_table_to_storage(output, "communities", context.storage)
+    await write_table_to_storage(output, "communities", context.output_storage)
 
     return WorkflowFunctionOutput(result=output)
 
@@ -52,7 +54,7 @@ def create_communities(
     seed: int | None = None,
 ) -> pd.DataFrame:
     """All the steps to transform final communities."""
-    graph = create_graph(relationships)
+    graph = create_graph(relationships, edge_attr=["weight"])
 
     clusters = cluster_graph(
         graph,

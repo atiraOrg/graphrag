@@ -15,6 +15,7 @@ class PipelineFactory:
     """A factory class for workflow pipelines."""
 
     workflows: ClassVar[dict[str, WorkflowFunction]] = {}
+    pipelines: ClassVar[dict[str, list[str]]] = {}
 
     @classmethod
     def register(cls, name: str, workflow: WorkflowFunction):
@@ -28,42 +29,65 @@ class PipelineFactory:
             cls.register(name, workflow)
 
     @classmethod
+    def register_pipeline(cls, name: str, workflows: list[str]):
+        """Register a new pipeline method as a list of workflow names."""
+        cls.pipelines[name] = workflows
+
+    @classmethod
     def create_pipeline(
-        cls, config: GraphRagConfig, method: IndexingMethod = IndexingMethod.Standard
+        cls,
+        config: GraphRagConfig,
+        method: IndexingMethod | str = IndexingMethod.Standard,
     ) -> Pipeline:
         """Create a pipeline generator."""
-        workflows = _get_workflows_list(config, method)
+        workflows = config.workflows or cls.pipelines.get(method, [])
         return Pipeline([(name, cls.workflows[name]) for name in workflows])
 
 
-def _get_workflows_list(
-    config: GraphRagConfig, method: IndexingMethod = IndexingMethod.Standard
-) -> list[str]:
-    """Return a list of workflows for the indexing pipeline."""
-    if config.workflows:
-        return config.workflows
-    match method:
-        case IndexingMethod.Standard:
-            return [
-                "create_base_text_units",
-                "create_final_documents",
-                "extract_graph",
-                "finalize_graph",
-                *(["extract_covariates"] if config.extract_claims.enabled else []),
-                "create_communities",
-                "create_final_text_units",
-                "create_community_reports",
-                "generate_text_embeddings",
-            ]
-        case IndexingMethod.Fast:
-            return [
-                "create_base_text_units",
-                "create_final_documents",
-                "extract_graph_nlp",
-                "prune_graph",
-                "finalize_graph",
-                "create_communities",
-                "create_final_text_units",
-                "create_community_reports_text",
-                "generate_text_embeddings",
-            ]
+# --- Register default implementations ---
+_standard_workflows = [
+    "create_base_text_units",
+    "create_final_documents",
+    "extract_graph",
+    "finalize_graph",
+    "extract_covariates",
+    "create_communities",
+    "create_final_text_units",
+    "create_community_reports",
+    "generate_text_embeddings",
+]
+_fast_workflows = [
+    "create_base_text_units",
+    "create_final_documents",
+    "extract_graph_nlp",
+    "prune_graph",
+    "finalize_graph",
+    "create_communities",
+    "create_final_text_units",
+    "create_community_reports_text",
+    "generate_text_embeddings",
+]
+_update_workflows = [
+    "update_final_documents",
+    "update_entities_relationships",
+    "update_text_units",
+    "update_covariates",
+    "update_communities",
+    "update_community_reports",
+    "update_text_embeddings",
+    "update_clean_state",
+]
+PipelineFactory.register_pipeline(
+    IndexingMethod.Standard, ["load_input_documents", *_standard_workflows]
+)
+PipelineFactory.register_pipeline(
+    IndexingMethod.Fast, ["load_input_documents", *_fast_workflows]
+)
+PipelineFactory.register_pipeline(
+    IndexingMethod.StandardUpdate,
+    ["load_update_documents", *_standard_workflows, *_update_workflows],
+)
+PipelineFactory.register_pipeline(
+    IndexingMethod.FastUpdate,
+    ["load_update_documents", *_fast_workflows, *_update_workflows],
+)
