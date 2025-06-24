@@ -21,7 +21,7 @@ from graphrag.index.utils.derive_from_rows import derive_from_rows
 log = logging.getLogger(__name__)
 
 
-DEFAULT_ENTITY_TYPES = ["organization", "person", "geo", "event"]
+DEFAULT_ENTITY_TYPES = ["organization","person","role","project","equipment/system","requirement","deliverable","site/location","product","material","regulation/standard","risk","utility/service","document","performance indicator","interface/protocol","software/platform","component","test/validation procedure","stakeholder/group","training/program","contract/obligation","compliance/certification","procedure/methodology"]
 
 
 async def extract_graph(
